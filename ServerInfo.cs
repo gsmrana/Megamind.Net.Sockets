@@ -71,6 +71,30 @@ namespace Megamind.Net.Sockets
             return hostentry.HostName;
         }
 
+        public static IEnumerable<IPAddress> GetTraceRoute(string host, int timeout = 1000, int maxTTL = 30)
+        {
+            const int bufferSize = 32;
+            var buffer = new byte[bufferSize];
+            new Random().NextBytes(buffer);
+
+            using (var pinger = new Ping())
+            {
+                for (int ttl = 1; ttl <= maxTTL; ttl++)
+                {
+                    var options = new PingOptions(ttl, true);
+                    var reply = pinger.Send(host, timeout, buffer, options);
+
+                    // we've found a route at this ttl
+                    if (reply.Status == IPStatus.Success || reply.Status == IPStatus.TtlExpired)
+                        yield return reply.Address;
+
+                    // if we reach a status other than expired or timed out, we're done searching or there has been an error
+                    if (reply.Status != IPStatus.TtlExpired && reply.Status != IPStatus.TimedOut)
+                        break;
+                }
+            }
+        }
+
         public static DateTime GetDatetimeFromNTP(string host, int port = 123)
         {
             const byte ntpDateTimeIndex = 40;
