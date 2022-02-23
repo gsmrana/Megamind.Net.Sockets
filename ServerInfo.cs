@@ -71,7 +71,7 @@ namespace Megamind.Net.Sockets
             return hostentry.HostName;
         }
 
-        public static IEnumerable<IPAddress> GetTraceRoute(string host, int timeout = 1000, int maxTTL = 30)
+        public static IEnumerable<PingReply> GetTraceRoute(string host, int timeout = 3000, int maxTTL = 30)
         {
             const int bufferSize = 32;
             var buffer = new byte[bufferSize];
@@ -83,12 +83,9 @@ namespace Megamind.Net.Sockets
                 {
                     var options = new PingOptions(ttl, true);
                     var reply = pinger.Send(host, timeout, buffer, options);
+                    yield return reply;
 
-                    // we've found a route at this ttl
-                    if (reply.Status == IPStatus.Success || reply.Status == IPStatus.TtlExpired)
-                        yield return reply.Address;
-
-                    // if we reach a status other than expired or timed out, we're done searching or there has been an error
+                    // we're done searching or there has been an error
                     if (reply.Status != IPStatus.TtlExpired && reply.Status != IPStatus.TimedOut)
                         break;
                 }
